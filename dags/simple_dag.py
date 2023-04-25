@@ -13,7 +13,7 @@ default_args = {
 }
 
 dag = DAG(
-    'my_dag',
+    'my_dag1',
     default_args=default_args,
     description='A simple DAG',
     schedule_interval=timedelta(days=1),
