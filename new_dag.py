@@ -5,18 +5,19 @@ from datetime import datetime, timedelta
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2023, 4, 26),
+    'start_date': datetime(2023, 4, 25),
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 1,
-    'retry_delay': timedelta(minutes=5)
+    'retry_delay': timedelta(minutes=1)
 }
 
 dag = DAG(
-    'my_dag12',
+    'my_dag_new',
     default_args=default_args,
     description='A simple DAG',
     schedule_interval=timedelta(days=1),
+    catchup=False
 )
 
 t1 = BashOperator(
