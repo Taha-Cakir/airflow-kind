@@ -76,7 +76,7 @@ LINKS_ENEM = {
     "2022_4":'https://download.inep.gov.br/enem/provas_e_gabaritos/2022_PV_reaplicacao_PPL_D2_CD7.pdf',
 }
 
-AWS_CONN_ID = "AWSConnection"
+AWS_CONN_ID = "aws_conn"
 YEAR_VARIABLE = "year"
 
 def download_pdfs_from_year(
