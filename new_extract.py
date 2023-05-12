@@ -131,5 +131,5 @@ def extract_data():
         # run some further cat analysis here
 
     # Invoke functions to create tasks and define dependencies
-    extract_texts(download_pdfs_from_year())
+    extract_texts(download_pdfs_from_year(YEAR_VARIABLE,"pyspark-glue-etl"))
 extract_data()
