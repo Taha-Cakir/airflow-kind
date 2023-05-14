@@ -152,28 +152,29 @@ def extract_data():
                     Bucket=bucket,
                     Key=f"content/{object_key[:-4]}.json" ,
                 )
-    @task(task_id='glueJob')   ### Bu kısım jenkins ile yapılacak ama sadece görmek açısından koyuyoruz..  
-    def trigger_process_enem_pdf_glue_job(
-        job_name
-    ):
-        session = AwsGenericHook(aws_conn_id=AWS_CONN_ID)
 
-        # Get a client in the same region as the Glue job
-        boto3_session = session.get_session(
-            region_name='us-east-1',
-        )
-
-        # Trigger the job using its name
-        client = boto3_session.client('glue')
-        client.start_job_run(
-            JobName=job_name,
-        )
 
         # run some further cat analysis here
 
     # Invoke functions to create tasks and define dependencies
     vars_from_task = download_pdfs_from_year(YEAR_VARIABLE,"pyspark-glue-etl")   # çalışması lazım, videoda böyle yapıyor..
     extract_texts(vars_from_task["keys"],vars_from_task["bucket"])
-    trigger_process_enem_pdf_glue_job(job_name='GlueETLJob')
+@task(task_id='glueJob')   ### Bu kısım jenkins ile yapılacak ama sadece görmek açısından koyuyoruz..  
+def trigger_process_enem_pdf_glue_job(
+    job_name
+):
+    session = AwsGenericHook(aws_conn_id=AWS_CONN_ID)
 
-extract_data()
+    # Get a client in the same region as the Glue job
+    boto3_session = session.get_session(
+        region_name='us-east-1',
+    )
+
+    # Trigger the job using its name
+    client = boto3_session.client('glue')
+    client.start_job_run(
+        JobName=job_name,
+    )
+
+extract_data() >> trigger_process_enem_pdf_glue_job(job_name='GlueETLJob')
+
