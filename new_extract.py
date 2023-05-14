@@ -6,6 +6,11 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.hooks.base_aws import AwsGenericHook
 
+import boto3
+from PyPDF2 import PdfReader
+import io
+import json
+
 import requests
 import json
 
@@ -15,7 +20,8 @@ default_args = {"start_date": datetime(2021, 1, 1)}
 from datetime import datetime
 import requests
 import pandas as pd
-
+## Airflow UI da year = 2010 variable oluşturmayı unutma..
+# link burda : https://towardsdatascience.com/data-pipeline-with-airflow-and-aws-tools-s3-lambda-glue-18585d269761
 
 LINKS_ENEM = {
     "2010_1":'https://download.inep.gov.br/educacao_basica/enem/provas/2010/dia1_caderno1_azul_com_gab.pdf',
@@ -89,7 +95,7 @@ YEAR_VARIABLE = "year"
 
 @dag(schedule="@daily", default_args=default_args, catchup=False)
 def extract_data():
-    @task
+    @task(task_id="download",multiple_outputs=True)
     def download_pdfs_from_year(
         year_variable,
         bucket
@@ -100,8 +106,9 @@ def extract_data():
         year = Variable.get(year_variable)
 
         year_keys = [key for key in LINKS_ENEM.keys() if year in key]
-
+        keys = []
         for key in year_keys:
+            keys.append(key)
             print(f"Downloading {key}")
             url = LINKS_ENEM[key]
             r = requests.get(
@@ -119,17 +126,36 @@ def extract_data():
 
         year = str(int(year)+1)
         Variable.set(year_variable, year)
-        return {"pdfs": json.loads(r.content)}
+        return {"keys": keys, "bucket": bucket}
     
     @task
-    def extract_texts(pdfs: json):
-        """
-        Prints the cat fact
-        """
-        df = pd.DataFrame(pdfs)
-        df.head()
+    def extract_texts(keys,bucket):
+        conn = S3Hook(aws_conn_id=AWS_CONN_ID)
+        client = conn.get_conn()
+
+        for key in len(keys):
+            object_key = f"pdf_{key}.pdf"
+            pdf_file = client.get_object(Bucket=bucket, Key=object_key)
+            pdf_file = io.BytesIO(pdf_file["Body"].read())
+            pdf = PdfReader(pdf_file)
+            object_uri = f"s3://{bucket}/{object_key}"
+            text = ""
+            for page in pdf.pages:
+                text += page.extract_text()
+                text_object = {
+                    "content": text,
+                    "original_uri": object_uri
+                }
+
+                client.put_object(
+                    Body=json.dumps(text_object).encode("utf-8"),
+                    Bucket=bucket,
+                    Key=f"content/{object_key[:-4]}.json" ,
+                )         
+
         # run some further cat analysis here
 
     # Invoke functions to create tasks and define dependencies
-    extract_texts(download_pdfs_from_year(YEAR_VARIABLE,"pyspark-glue-etl"))
+    vars_from_task = download_pdfs_from_year(YEAR_VARIABLE,"pyspark-glue-etl")   # çalışması lazım, videoda böyle yapıyor..
+    extract_texts(vars_from_task["keys"],vars_from_task["bucket"])
 extract_data()
