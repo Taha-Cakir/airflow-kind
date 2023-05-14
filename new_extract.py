@@ -124,7 +124,7 @@ def extract_data():
             )
 
 
-        year = str(int(year)+1)
+        year = str(int(year))
         Variable.set(year_variable, year)
         return {"keys": keys, "bucket": bucket}
     
