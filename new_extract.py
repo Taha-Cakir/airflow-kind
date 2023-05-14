@@ -133,7 +133,7 @@ def extract_data():
         conn = S3Hook(aws_conn_id=AWS_CONN_ID)
         client = conn.get_conn()
 
-        for key in len(keys):
+        for key in keys:
             object_key = f"pdf_{key}.pdf"
             pdf_file = client.get_object(Bucket=bucket, Key=object_key)
             pdf_file = io.BytesIO(pdf_file["Body"].read())
